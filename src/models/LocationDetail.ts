@@ -1,0 +1,10 @@
+export type LocationDetail = {
+  LOCATION_CODE: string
+  LOCATION_NAME: string
+  LOCATION_TYPE_CODE: string
+  LOCATION_TYPE_DESCRIPTION: string,
+  PARENT_LOCATION_CODE: string,
+  PARENT_LOCATION_NAME: string,
+  PARENT_LOCATION_TYPE_CODE: string
+  PARENT_LOCATION_TYPE_DESCRIPTION: string
+}
