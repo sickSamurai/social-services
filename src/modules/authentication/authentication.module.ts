@@ -8,5 +8,4 @@ import { MailService } from "../../services/mail/mail.service"
   controllers: [AuthenticationController],
   providers: [AuthenticationService, MailService]
 })
-export class AuthenticationModule {
-}
+export class AuthenticationModule {}

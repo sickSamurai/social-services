@@ -1,10 +1,9 @@
 import { Injectable } from "@nestjs/common"
 import { DataSource } from "typeorm"
 import { EmailValidation } from "../../models/EmailValidation"
-import { CheckEmailQueryResult } from "../../models/CheckEmailQueryResult"
 import { CreateUserRequest } from "../../models/CreateUserRequest"
 import { v4 as uuidv4 } from "uuid"
-import { CountUserQueryResult } from "../../models/CountUserQueryResult"
+import { CountResult } from "../../models/CountResult"
 import { PendingUser } from "../../models/PendingUser"
 import { RegisterResponse } from "../../models/RegisterResponse"
 
@@ -15,13 +14,13 @@ export class AuthenticationService {
 
   async validateEmail(email: string): Promise<EmailValidation> {
     const sql: string = "SELECT COUNT(*) AS count FROM SOCIAL_USER WHERE UPPER(EMAIL) = UPPER(:p)"
-    const result = await this.dataSource.query<CheckEmailQueryResult[]>(sql, [email])
+    const result = await this.dataSource.query<CountResult[]>(sql, [email])
     return <EmailValidation>{ EMAIL_EXISTS: result[0].COUNT > 0 }
   }
 
   async generateUserID(): Promise<string> {
     const sql: string = "SELECT COUNT(*) AS count FROM SOCIAL_UD.SOCIAL_USER"
-    const result = await this.dataSource.query<CountUserQueryResult[]>(sql)
+    const result = await this.dataSource.query<CountResult[]>(sql)
     const nextNumber = result[0].COUNT + 1
     const padded = nextNumber.toString().padStart(4, "0")
     return `U${padded}`
