@@ -4,6 +4,8 @@ import { ChatHeader } from "../../models/ChatHeader"
 import { Message } from "../../models/Message"
 import { SendMessageToFriendRequest } from "../../models/SendMessageToFriendRequest"
 import { SendMessageToGroupRequest } from "../../models/SendMessageToGroupRequest"
+import { ResponseToGroupMessageRequest } from "../../models/ResponseToGroupMessageRequest"
+import { ResponseToFriendMessageRequest } from "../../models/ResponseToFriendMessageRequest"
 
 @Controller("api/messages")
 export class MessagesController {
@@ -32,5 +34,15 @@ export class MessagesController {
   @Post("groups")
   async sendMessageToGroup(@Body() request: SendMessageToGroupRequest): Promise<void> {
     await this.messagesService.sendMessageToGroup(request)
+  }
+
+  @Post("responses/friends")
+  async responseToFriendMessage(@Body() request: ResponseToFriendMessageRequest): Promise<void> {
+    await this.messagesService.responseToFriendMessage(request)
+  }
+
+  @Post("responses/groups")
+  async responseToGroupMessage(@Body() request: ResponseToGroupMessageRequest): Promise<void> {
+    await this.messagesService.responseToGroupMessage(request)
   }
 }

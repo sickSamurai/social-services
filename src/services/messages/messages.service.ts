@@ -4,6 +4,8 @@ import { Message } from "../../models/Message"
 import { ChatHeader } from "../../models/ChatHeader"
 import { SendMessageToGroupRequest } from "../../models/SendMessageToGroupRequest"
 import { SendMessageToFriendRequest } from "../../models/SendMessageToFriendRequest"
+import { ResponseToFriendMessageRequest } from "../../models/ResponseToFriendMessageRequest"
+import { ResponseToGroupMessageRequest } from "../../models/ResponseToGroupMessageRequest"
 
 @Injectable()
 export class MessagesService {
@@ -127,6 +129,32 @@ export class MessagesService {
       const contentSql = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_IMAGE, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, FILE_TYPE)
                           VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, EMPTY_BLOB(), :messageContent, :contentTypeId, :fileTypeId)`
       const contentParams = [dto.messageContent, dto.contentTypeId, dto.fileTypeId]
+      await this.dataSource.query(contentSql, contentParams)
+    }
+  }
+
+  async responseToFriendMessage(request: ResponseToFriendMessageRequest): Promise<void> {
+    const createMessageQuery = `INSERT INTO SOCIAL_UD.MESSAGE (MESSAGE_ID, PARENT_MESSAGE_ID, SENDER_USER_ID, RECEIVER_USER_ID, MESSAGE_DATE)
+                                VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.NEXTVAL, :parentMessageId, :senderUserId, :receiverUserId, SYSDATE)`
+    const createMessageQueryParams = [request.parentMessageId, request.senderUserId, request.receiverUserId]
+    await this.dataSource.query(createMessageQuery, createMessageQueryParams)
+    const contentQuery = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_IMAGE, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, FILE_TYPE)
+                          VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, EMPTY_BLOB(), :messageContent, :contentTypeId, :fileType)`
+    const contentQueryParams = [request.messageContent, request.contentTypeId, request.fileType]
+    await this.dataSource.query(contentQuery, contentQueryParams)
+  }
+
+  async responseToGroupMessage(request: ResponseToGroupMessageRequest): Promise<void> {
+    const groupMembersSql = "SELECT USER_ID FROM SOCIAL_UD.GROUP_MEMBERSHIP WHERE GROUP_ID = :groupId AND USER_ID != :senderUserId"
+    const groupMembers = await this.dataSource.query<{ USER_ID: string }[]>(groupMembersSql, [request.groupId, request.senderUserId])
+    for (const member of groupMembers) {
+      const sql = `INSERT INTO SOCIAL_UD.MESSAGE (MESSAGE_ID, PARENT_MESSAGE_ID, GROUP_ID, SENDER_USER_ID, RECEIVER_USER_ID, MESSAGE_DATE)
+                   VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.NEXTVAL, :parentMessageId, :groupId, :senderUserId, :receiverUserId, SYSDATE)`
+      const params = [request.parentMessageId, request.groupId, request.senderUserId, member.USER_ID]
+      await this.dataSource.query(sql, params)
+      const contentSql = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_IMAGE, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, FILE_TYPE)
+                          VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, EMPTY_BLOB(), :messageContent, :contentTypeId, :fileType)`
+      const contentParams = [request.messageContent, request.contentTypeId, request.fileType]
       await this.dataSource.query(contentSql, contentParams)
     }
   }
