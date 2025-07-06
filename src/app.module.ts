@@ -7,6 +7,8 @@ import { LocationModule } from "./modules/location/location.module"
 import { AuthenticationService } from "./services/authentication/authentication.service"
 import { LocationService } from "./services/location/location.service"
 import { MailService } from "./services/mail/mail.service"
+import { MessagesModule } from './modules/messages/messages.module';
+import { MessagesService } from './services/messages/messages.service';
 
 
 @Module({
@@ -15,8 +17,9 @@ import { MailService } from "./services/mail/mail.service"
     MailerConfig,
     SocialDatabase,
     AuthenticationModule,
-    LocationModule
+    LocationModule,
+    MessagesModule
   ],
-  providers: [AuthenticationService, LocationService, MailService]
+  providers: [AuthenticationService, LocationService, MailService, MessagesService]
 })
 export class AppModule {}

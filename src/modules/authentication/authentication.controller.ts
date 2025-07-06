@@ -9,6 +9,16 @@ import { MailService } from "../../services/mail/mail.service"
 export class AuthenticationController {
   constructor(private authenticationService: AuthenticationService, private mailService: MailService) {}
 
+  @Post("login")
+  async login(@Body("email") email: string): Promise<{ user: any }> {
+    try {
+      return await this.authenticationService.loginUser(email)
+    } catch (error) {
+      if (error instanceof Error) throw new NotFoundException(error.message)
+      else throw new InternalServerErrorException("Ocurrió un error desconocido al iniciar sesión")
+    }
+  }
+
   @Get("check/email/:email")
   async validateEmail(@Param("email") email: string): Promise<EmailValidation> {
     return await this.authenticationService.validateEmail(email)

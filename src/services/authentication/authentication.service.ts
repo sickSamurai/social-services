@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from "uuid"
 import { CountResult } from "../../models/CountResult"
 import { PendingUser } from "../../models/PendingUser"
 import { RegisterResponse } from "../../models/RegisterResponse"
+import { SocialUser } from "../../models/SocialUser"
 
 
 @Injectable()
@@ -38,6 +39,15 @@ export class AuthenticationService {
     const params = [token, await this.generateUserID(), dto.username, dto.name, dto.username, dto.email, dto.phone, dto.locationCode]
     await this.dataSource.query(sql, params)
     return { email: dto.email, token: token }
+  }
+
+  async loginUser(email: string): Promise<{ user: SocialUser }> {
+    const sql: string = "SELECT USER_ID, USER_NAME, USER_LAST_NAME, USER_UNIQUE_NAME, REGISTRATION_DATE, EMAIL, PHONE, LOCATION_CODE FROM SOCIAL_USER WHERE UPPER(EMAIL) = UPPER(:email)"
+    const result = await this.dataSource.query<SocialUser[]>(sql, [email])
+
+    if (result.length === 0) throw new Error("Usuario no encontrado")
+    
+    return { user: result[0] }
   }
 
   async confirmAccount(token: string): Promise<{ message: string }> {
