@@ -116,19 +116,19 @@ export class MessagesService {
   /**
    * Envía un mensaje a un grupo, lo que implica enviarlo a cada uno de los miembros del grupo, en calidad de destinatarios del mensaje.
    *
-   * @param dto El objeto DTO que contiene los detalles del mensaje a enviar.
+   * @param request El objeto DTO que contiene los detalles del mensaje a enviar.
    */
-  async sendMessageToGroup(dto: SendMessageToGroupRequest): Promise<void> {
+  async sendMessageToGroup(request: SendMessageToGroupRequest): Promise<void> {
     const groupMembersSql = "SELECT USER_ID FROM SOCIAL_UD.GROUP_MEMBERSHIP WHERE GROUP_ID = :groupId AND USER_ID != :senderUserId"
-    const groupMembers = await this.dataSource.query<{ USER_ID: string }[]>(groupMembersSql, [dto.groupId, dto.senderUserId])
+    const groupMembers = await this.dataSource.query<{ USER_ID: string }[]>(groupMembersSql, [request.groupId, request.senderUserId])
     for (const member of groupMembers) {
       const sql = `INSERT INTO SOCIAL_UD.MESSAGE (MESSAGE_ID, PARENT_MESSAGE_ID, GROUP_ID, SENDER_USER_ID, RECEIVER_USER_ID, MESSAGE_DATE)
                    VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.NEXTVAL, NULL, :groupId, :senderUserId, :receiverUserId, SYSDATE)`
-      const params = [dto.groupId, dto.senderUserId, member.USER_ID]
+      const params = [request.groupId, request.senderUserId, member.USER_ID]
       await this.dataSource.query(sql, params)
       const contentSql = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_IMAGE, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, FILE_TYPE)
                           VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, EMPTY_BLOB(), :messageContent, :contentTypeId, :fileTypeId)`
-      const contentParams = [dto.messageContent, dto.contentTypeId, dto.fileTypeId]
+      const contentParams = [request.messageContent, request.contentTypeId, request.fileTypeId]
       await this.dataSource.query(contentSql, contentParams)
     }
   }

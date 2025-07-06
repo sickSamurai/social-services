@@ -6,6 +6,7 @@ import { RegisterResponse } from "../../models/responses/RegisterResponse"
 import { MailService } from "../../services/mail/mail.service"
 import { LoginResponse } from "../../models/responses/LoginResponse"
 import { MessageResponse } from "../../models/responses/MessageResponse"
+import { SendConfirmationEmailRequest } from "../../models/requests/SendConfirmationEmailRequest"
 
 @Controller("api/authentication")
 export class AuthenticationController {
@@ -31,10 +32,10 @@ export class AuthenticationController {
     return await this.authenticationService.registerPendingUser(request)
 
   }
-
+  
   @Post("confirmation-email")
-  async sendConfirmationEmail(@Body() dto: { email: string, token: string }): Promise<MessageResponse> {
-    if (await this.mailService.sendConfirmationEmail(dto.email, dto.token))
+  async sendConfirmationEmail(@Body() request: SendConfirmationEmailRequest): Promise<MessageResponse> {
+    if (await this.mailService.sendConfirmationEmail(request.email, request.token))
       return { message: "El email de confirmación fue enviado exitosamente" }
     else return { message: "Error inesperado al enviar el email" }
   }

@@ -28,7 +28,7 @@ export class AuthenticationService {
   }
 
 
-  async registerPendingUser(dto: CreateUserRequest): Promise<RegisterResponse> {
+  async registerPendingUser(request: CreateUserRequest): Promise<RegisterResponse> {
     const token = uuidv4()
 
     const sql = `
@@ -36,9 +36,9 @@ export class AuthenticationService {
         VALUES (:token, :userId, :userName, :userLastName, :userUniqueName, :email, :phone, :locationCode)
     `
 
-    const params = [token, await this.generateUserID(), dto.username, dto.name, dto.username, dto.email, dto.phone, dto.locationCode]
+    const params = [token, await this.generateUserID(), request.username, request.name, request.username, request.email, request.phone, request.locationCode]
     await this.dataSource.query(sql, params)
-    return { email: dto.email, token: token }
+    return { email: request.email, token: token }
   }
 
   async loginUser(email: string): Promise<{ user: SocialUser }> {
