@@ -1,16 +1,18 @@
 import { Body, Controller, Get, InternalServerErrorException, NotFoundException, Param, Post, Query } from "@nestjs/common"
 import { AuthenticationService } from "../../services/authentication/authentication.service"
-import { EmailValidation } from "../../models/EmailValidation"
-import { CreateUserRequest } from "../../models/CreateUserRequest"
-import { RegisterResponse } from "../../models/RegisterResponse"
+import { EmailValidation } from "../../models/responses/EmailValidation"
+import { CreateUserRequest } from "../../models/requests/CreateUserRequest"
+import { RegisterResponse } from "../../models/responses/RegisterResponse"
 import { MailService } from "../../services/mail/mail.service"
+import { LoginResponse } from "../../models/responses/LoginResponse"
+import { MessageResponse } from "../../models/responses/MessageResponse"
 
 @Controller("api/authentication")
 export class AuthenticationController {
   constructor(private authenticationService: AuthenticationService, private mailService: MailService) {}
 
   @Post("login")
-  async login(@Body("email") email: string): Promise<{ user: any }> {
+  async login(@Body("email") email: string): Promise<LoginResponse> {
     try {
       return await this.authenticationService.loginUser(email)
     } catch (error) {
@@ -31,14 +33,14 @@ export class AuthenticationController {
   }
 
   @Post("confirmation-email")
-  async sendConfirmationEmail(@Body() dto: { email: string, token: string }) {
+  async sendConfirmationEmail(@Body() dto: { email: string, token: string }): Promise<MessageResponse> {
     if (await this.mailService.sendConfirmationEmail(dto.email, dto.token))
       return { message: "El email de confirmación fue enviado exitosamente" }
     else return { message: "Error inesperado al enviar el email" }
   }
 
   @Get("confirmation")
-  async confirmAccount(@Query("token") token: string): Promise<{ message: string }> {
+  async confirmAccount(@Query("token") token: string): Promise<MessageResponse> {
     try {
       return await this.authenticationService.confirmAccount(token)
     } catch (error) {

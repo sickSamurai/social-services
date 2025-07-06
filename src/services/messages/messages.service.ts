@@ -1,11 +1,11 @@
 import { Injectable } from "@nestjs/common"
 import { DataSource } from "typeorm"
-import { Message } from "../../models/Message"
-import { ChatHeader } from "../../models/ChatHeader"
-import { SendMessageToGroupRequest } from "../../models/SendMessageToGroupRequest"
-import { SendMessageToFriendRequest } from "../../models/SendMessageToFriendRequest"
-import { ResponseToFriendMessageRequest } from "../../models/ResponseToFriendMessageRequest"
-import { ResponseToGroupMessageRequest } from "../../models/ResponseToGroupMessageRequest"
+import { Message } from "../../models/dto/Message"
+import { ChatHeader } from "../../models/dto/ChatHeader"
+import { SendMessageToGroupRequest } from "../../models/requests/SendMessageToGroupRequest"
+import { SendMessageToFriendRequest } from "../../models/requests/SendMessageToFriendRequest"
+import { ResponseToFriendMessageRequest } from "../../models/requests/ResponseToFriendMessageRequest"
+import { ResponseToGroupMessageRequest } from "../../models/requests/ResponseToGroupMessageRequest"
 
 @Injectable()
 export class MessagesService {

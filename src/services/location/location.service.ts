@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common"
 import { DataSource } from "typeorm"
-import { LocationDetail } from "../../models/LocationDetail"
-import { CountryDetail } from "../../models/CountryDetail"
+import { LocationDetail } from "../../models/dto/LocationDetail"
+import { CountryDetail } from "../../models/dto/CountryDetail"
 
 @Injectable()
 export class LocationService {

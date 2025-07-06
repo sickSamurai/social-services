@@ -1,12 +1,12 @@
 import { Injectable } from "@nestjs/common"
 import { DataSource } from "typeorm"
-import { EmailValidation } from "../../models/EmailValidation"
-import { CreateUserRequest } from "../../models/CreateUserRequest"
+import { EmailValidation } from "../../models/responses/EmailValidation"
+import { CreateUserRequest } from "../../models/requests/CreateUserRequest"
 import { v4 as uuidv4 } from "uuid"
-import { CountResult } from "../../models/CountResult"
-import { PendingUser } from "../../models/PendingUser"
-import { RegisterResponse } from "../../models/RegisterResponse"
-import { SocialUser } from "../../models/SocialUser"
+import { CountResult } from "../../models/dto/CountResult"
+import { PendingUser } from "../../models/dto/PendingUser"
+import { RegisterResponse } from "../../models/responses/RegisterResponse"
+import { SocialUser } from "../../models/dto/SocialUser"
 
 
 @Injectable()

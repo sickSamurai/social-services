@@ -1,11 +1,11 @@
 import { Body, Controller, Get, Post, Query } from "@nestjs/common"
 import { MessagesService } from "../../services/messages/messages.service"
-import { ChatHeader } from "../../models/ChatHeader"
-import { Message } from "../../models/Message"
-import { SendMessageToFriendRequest } from "../../models/SendMessageToFriendRequest"
-import { SendMessageToGroupRequest } from "../../models/SendMessageToGroupRequest"
-import { ResponseToGroupMessageRequest } from "../../models/ResponseToGroupMessageRequest"
-import { ResponseToFriendMessageRequest } from "../../models/ResponseToFriendMessageRequest"
+import { ChatHeader } from "../../models/dto/ChatHeader"
+import { Message } from "../../models/dto/Message"
+import { SendMessageToFriendRequest } from "../../models/requests/SendMessageToFriendRequest"
+import { SendMessageToGroupRequest } from "../../models/requests/SendMessageToGroupRequest"
+import { ResponseToGroupMessageRequest } from "../../models/requests/ResponseToGroupMessageRequest"
+import { ResponseToFriendMessageRequest } from "../../models/requests/ResponseToFriendMessageRequest"
 
 @Controller("api/messages")
 export class MessagesController {
