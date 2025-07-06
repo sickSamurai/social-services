@@ -31,14 +31,14 @@ export class MessagesController {
     await this.messagesService.sendMessageToFriend(request)
   }
 
-  @Post("groups")
-  async sendMessageToGroup(@Body() request: SendMessageToGroupRequest): Promise<void> {
-    await this.messagesService.sendMessageToGroup(request)
-  }
-
   @Post("responses/friends")
   async responseToFriendMessage(@Body() request: ResponseToFriendMessageRequest): Promise<void> {
     await this.messagesService.responseToFriendMessage(request)
+  }
+
+  @Post("groups")
+  async sendMessageToGroup(@Body() request: SendMessageToGroupRequest): Promise<void> {
+    await this.messagesService.sendMessageToGroup(request)
   }
 
   @Post("responses/groups")

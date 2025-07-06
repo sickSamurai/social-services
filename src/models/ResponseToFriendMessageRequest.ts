@@ -1,5 +1,5 @@
 export type ResponseToFriendMessageRequest = {
-  parentMessageId?: string;
+  parentMessageId?: number;
   senderUserId: string;
   receiverUserId: string;
   messageContent: string;

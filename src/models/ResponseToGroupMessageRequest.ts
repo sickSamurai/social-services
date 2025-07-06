@@ -1,5 +1,5 @@
 export type ResponseToGroupMessageRequest = {
-  parentMessageId?: string;
+  parentMessageId?: number;
   senderUserId: string;
   groupId: number;
   messageContent: string;
