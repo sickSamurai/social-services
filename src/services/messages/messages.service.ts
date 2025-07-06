@@ -21,7 +21,7 @@ export class MessagesService {
         FROM SOCIAL_UD.SOCIAL_USER BASE_USER
                  JOIN SOCIAL_UD.USER_FRIENDSHIP UF ON BASE_USER.USER_ID = UF.USER_A
                  JOIN SOCIAL_UD.SOCIAL_USER FRIEND ON UF.USER_B = FRIEND.USER_ID
-        WHERE BASE_USER.USER_ID = '${baseUser}'
+        WHERE BASE_USER.USER_ID = ${baseUser}
         UNION ALL
         SELECT 'GROUP'                           AS CHAT_TYPE,
                CAST(SG.GROUP_ID AS VARCHAR(5))   AS CHAT_PARTIAL_ID,
@@ -31,7 +31,7 @@ export class MessagesService {
                 WHERE M.GROUP_ID = SGM.GROUP_ID) AS LAST_MESSAGE_DATE
         FROM SOCIAL_UD.GROUP_MEMBERSHIP SGM
                  JOIN SOCIAL_UD.SOCIAL_GROUP SG ON SGM.GROUP_ID = SG.GROUP_ID
-        WHERE SGM.USER_ID = '${baseUser}';
+        WHERE SGM.USER_ID = ${baseUser}
     `
 
     return await this.dataSource.query<ChatHeader[]>(sql)
@@ -55,10 +55,10 @@ export class MessagesService {
                  LEFT JOIN SOCIAL_UD.CONTENT_TYPE CT ON C.CONTENT_TYPE_ID = CT.CONTENT_TYPE_ID
                  LEFT JOIN SOCIAL_UD.FILE_TYPE FT ON C.FILE_TYPE = FT.FILE_TYPE_ID
         WHERE M.GROUP_ID IS null AND
-              (M.SENDER_USER_ID = '${baseUser}' AND M.RECEIVER_USER_ID = '${friend}')
-           OR (M.SENDER_USER_ID = '${friend}' AND M.RECEIVER_USER_ID = '${baseUser}')
+              (M.SENDER_USER_ID = ${baseUser} AND M.RECEIVER_USER_ID = ${friend})
+           OR (M.SENDER_USER_ID = ${friend} AND M.RECEIVER_USER_ID = ${baseUser})
         ORDER BY M.MESSAGE_DATE DESC
-            FETCH FIRST 10 ROWS ONLY;
+            FETCH FIRST 10 ROWS ONLY
     `
     return await this.dataSource.query<Message[]>(sql)
   }
@@ -88,9 +88,9 @@ export class MessagesService {
                  LEFT JOIN SOCIAL_UD.CONTENT_TYPE CT ON C.CONTENT_TYPE_ID = CT.CONTENT_TYPE_ID
                  LEFT JOIN SOCIAL_UD.FILE_TYPE FT ON C.FILE_TYPE = FT.FILE_TYPE_ID
         WHERE M.GROUP_ID = ${groupId}
-          AND (M.RECEIVER_USER_ID = '${baseUser}' OR M.SENDER_USER_ID = '${baseUser}')
+          AND (M.RECEIVER_USER_ID = ${baseUser} OR M.SENDER_USER_ID = ${baseUser})
         ORDER BY M.MESSAGE_DATE DESC
-            FETCH FIRST 10 ROWS ONLY;
+            FETCH FIRST 10 ROWS ONLY
     `
     return await this.dataSource.query<Message[]>(sql)
   }
@@ -109,7 +109,6 @@ export class MessagesService {
                           VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, EMPTY_BLOB(), :messageContent, :contentTypeId, :fileType)`
     const contentQueryParams = [request.messageContent, request.contentTypeId, request.fileType]
     await this.dataSource.query(contentQuery, contentQueryParams)
-    return await this.dataSource.query(createMessageQuery, contentQueryParams)
   }
 
   /**
@@ -126,8 +125,8 @@ export class MessagesService {
       const params = [dto.groupId, dto.senderUserId, member.USER_ID]
       await this.dataSource.query(sql, params)
       const contentSql = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_IMAGE, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, FILE_TYPE)
-                          VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, EMPTY_BLOB(), :messageContent, :contentTypeId, :fileType)`
-      const contentParams = [dto.contentDescription, dto.contentTypeId, dto.fileTypeId]
+                          VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, EMPTY_BLOB(), :messageContent, :contentTypeId, :fileTypeId)`
+      const contentParams = [dto.messageContent, dto.contentTypeId, dto.fileTypeId]
       await this.dataSource.query(contentSql, contentParams)
     }
   }

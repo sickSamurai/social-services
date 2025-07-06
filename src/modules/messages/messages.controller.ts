@@ -5,7 +5,7 @@ import { Message } from "../../models/Message"
 import { SendMessageToFriendRequest } from "../../models/SendMessageToFriendRequest"
 import { SendMessageToGroupRequest } from "../../models/SendMessageToGroupRequest"
 
-@Controller("messages")
+@Controller("api/messages")
 export class MessagesController {
   constructor(private messagesService: MessagesService) {}
 
@@ -24,12 +24,12 @@ export class MessagesController {
     return await this.messagesService.getMessagesByGroupID(baseUser, groupId)
   }
 
-  @Post("messages/friends")
+  @Post("friends")
   async sendMessageToFriend(@Body() request: SendMessageToFriendRequest): Promise<void> {
     await this.messagesService.sendMessageToFriend(request)
   }
 
-  @Post("messages/groups")
+  @Post("groups")
   async sendMessageToGroup(@Body() request: SendMessageToGroupRequest): Promise<void> {
     await this.messagesService.sendMessageToGroup(request)
   }
