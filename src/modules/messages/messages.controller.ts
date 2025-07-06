@@ -1,7 +1,9 @@
-import { Controller, Get, Query } from "@nestjs/common"
+import { Body, Controller, Get, Post, Query } from "@nestjs/common"
 import { MessagesService } from "../../services/messages/messages.service"
 import { ChatHeader } from "../../models/ChatHeader"
 import { Message } from "../../models/Message"
+import { SendMessageToFriendRequest } from "../../models/SendMessageToFriendRequest"
+import { SendMessageToGroupRequest } from "../../models/SendMessageToGroupRequest"
 
 @Controller("messages")
 export class MessagesController {
@@ -12,13 +14,23 @@ export class MessagesController {
     return await this.messagesService.getChatHeaders(userId)
   }
 
-  @Get("messages-by-friend")
+  @Get("friends")
   async getMessagesByFriend(@Query("baseUser") baseUser: string, @Query("friend") friend: string): Promise<Message[]> {
     return await this.messagesService.getMessagesByFriendID(baseUser, friend)
   }
 
-  @Get("messages-by-group")
+  @Get("groups")
   async getMessagesByGroup(@Query("baseUser") baseUser: string, @Query("groupId") groupId: number): Promise<Message[]> {
     return await this.messagesService.getMessagesByGroupID(baseUser, groupId)
+  }
+
+  @Post("messages/friends")
+  async sendMessageToFriend(@Body() request: SendMessageToFriendRequest): Promise<void> {
+    await this.messagesService.sendMessageToFriend(request)
+  }
+
+  @Post("messages/groups")
+  async sendMessageToGroup(@Body() request: SendMessageToGroupRequest): Promise<void> {
+    await this.messagesService.sendMessageToGroup(request)
   }
 }

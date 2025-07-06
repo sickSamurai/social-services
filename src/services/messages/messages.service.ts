@@ -2,6 +2,8 @@ import { Injectable } from "@nestjs/common"
 import { DataSource } from "typeorm"
 import { Message } from "../../models/Message"
 import { ChatHeader } from "../../models/ChatHeader"
+import { SendMessageToGroupRequest } from "../../models/SendMessageToGroupRequest"
+import { SendMessageToFriendRequest } from "../../models/SendMessageToFriendRequest"
 
 @Injectable()
 export class MessagesService {
@@ -61,6 +63,13 @@ export class MessagesService {
     return await this.dataSource.query<Message[]>(sql)
   }
 
+  /**
+   *
+   * @param baseUser El ID del usuario base que está solicitando los mensajes.
+   * @param groupId El ID del grupo del cual se desean obtener los mensajes.
+   *
+   * @returns Un array de mensajes del grupo, incluyendo detalles del remitente y destinatario.
+   */
   async getMessagesByGroupID(baseUser: string, groupId: number): Promise<Message[]> {
     const sql = `
         SELECT M.MESSAGE_ID,
@@ -84,5 +93,42 @@ export class MessagesService {
             FETCH FIRST 10 ROWS ONLY;
     `
     return await this.dataSource.query<Message[]>(sql)
+  }
+
+  /**
+   * Envía un mensaje a un chat privado entre dos usuarios.
+   *
+   * @param request El objeto que contiene los detalles del mensaje a enviar.
+   */
+  async sendMessageToFriend(request: SendMessageToFriendRequest): Promise<void> {
+    const createMessageQuery = `INSERT INTO SOCIAL_UD.MESSAGE (MESSAGE_ID, PARENT_MESSAGE_ID, SENDER_USER_ID, RECEIVER_USER_ID, MESSAGE_DATE)
+                                VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.NEXTVAL, NULL, :senderUserId, :receiverUserId, SYSDATE)`
+    const createMessageQueryParams = [request.senderUserId, request.receiverUserId]
+    await this.dataSource.query(createMessageQuery, createMessageQueryParams)
+    const contentQuery = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_IMAGE, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, FILE_TYPE)
+                          VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, EMPTY_BLOB(), :messageContent, :contentTypeId, :fileType)`
+    const contentQueryParams = [request.messageContent, request.contentTypeId, request.fileType]
+    await this.dataSource.query(contentQuery, contentQueryParams)
+    return await this.dataSource.query(createMessageQuery, contentQueryParams)
+  }
+
+  /**
+   * Envía un mensaje a un grupo, lo que implica enviarlo a cada uno de los miembros del grupo, en calidad de destinatarios del mensaje.
+   *
+   * @param dto El objeto DTO que contiene los detalles del mensaje a enviar.
+   */
+  async sendMessageToGroup(dto: SendMessageToGroupRequest): Promise<void> {
+    const groupMembersSql = "SELECT USER_ID FROM SOCIAL_UD.GROUP_MEMBERSHIP WHERE GROUP_ID = :groupId AND USER_ID != :senderUserId"
+    const groupMembers = await this.dataSource.query<{ USER_ID: string }[]>(groupMembersSql, [dto.groupId, dto.senderUserId])
+    for (const member of groupMembers) {
+      const sql = `INSERT INTO SOCIAL_UD.MESSAGE (MESSAGE_ID, PARENT_MESSAGE_ID, GROUP_ID, SENDER_USER_ID, RECEIVER_USER_ID, MESSAGE_DATE)
+                   VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.NEXTVAL, NULL, :groupId, :senderUserId, :receiverUserId, SYSDATE)`
+      const params = [dto.groupId, dto.senderUserId, member.USER_ID]
+      await this.dataSource.query(sql, params)
+      const contentSql = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_IMAGE, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, FILE_TYPE)
+                          VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, EMPTY_BLOB(), :messageContent, :contentTypeId, :fileType)`
+      const contentParams = [dto.contentDescription, dto.contentTypeId, dto.fileTypeId]
+      await this.dataSource.query(contentSql, contentParams)
+    }
   }
 }
