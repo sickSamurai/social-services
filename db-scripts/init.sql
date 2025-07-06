@@ -1,4 +1,4 @@
--- Creal el schema y usuario para la base de datos Oracle
+-- Crea el schema y usuario para la base de datos Oracle
 ALTER SESSION SET CONTAINER = XEPDB1;
 CREATE USER SOCIAL_UD IDENTIFIED BY Penguins1223 DEFAULT TABLESPACE users TEMPORARY TABLESPACE temp;
 GRANT CONNECT, RESOURCE, CREATE SESSION TO SOCIAL_UD;

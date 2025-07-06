@@ -25,8 +25,8 @@ export class AuthenticationController {
   }
 
   @Post("register")
-  async registerPending(@Body() dto: CreateUserRequest): Promise<RegisterResponse> {
-    return await this.authenticationService.registerPendingUser(dto)
+  async registerPending(@Body() request: CreateUserRequest): Promise<RegisterResponse> {
+    return await this.authenticationService.registerPendingUser(request)
 
   }
 
@@ -37,7 +37,7 @@ export class AuthenticationController {
     else return { message: "Error inesperado al enviar el email" }
   }
 
-  @Get("confirm")
+  @Get("confirmation")
   async confirmAccount(@Query("token") token: string): Promise<{ message: string }> {
     try {
       return await this.authenticationService.confirmAccount(token)
