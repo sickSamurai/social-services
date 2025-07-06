@@ -18,19 +18,31 @@ Este proyecto es un servidor REST API desarrollado para la aplicación social es
 - Seguridad y validación de datos
 
 ## Instalación
-- Clona el repositorio: 
+
+- Clona el repositorio:
+
 ``` bash
     git clone https://github.com/sickSamurai/social-services.git
 ```
+
 - Instala las dependencias:
+
 ``` bash 
     npm install
 ```
+
 - Configura las variables de entorno según el archivo `.env.example`
 
 ## Uso
 
-Inicia el servidor de desarrollo:
+- Inicia la base de datos Oracle y asegúrate de que está corriendo.
+
+``` bash
+    docker-compose up -d
+```
+
+- Inicia el servidor de desarrollo:
+
 ``` bash
     npm run dev
 ```
