@@ -3,10 +3,10 @@ import { DataSource } from "typeorm"
 import { EmailValidation } from "../../models/responses/EmailValidation"
 import { CreateUserRequest } from "../../models/requests/CreateUserRequest"
 import { v4 as uuidv4 } from "uuid"
-import { CountResult } from "../../models/dto/CountResult"
-import { PendingUser } from "../../models/dto/PendingUser"
+import { CountResult } from "../../models/dataModels/CountResult"
+import { PendingUser } from "../../models/dataModels/PendingUser"
 import { RegisterResponse } from "../../models/responses/RegisterResponse"
-import { SocialUser } from "../../models/dto/SocialUser"
+import { SocialUser } from "../../models/dataModels/SocialUser"
 
 
 @Injectable()

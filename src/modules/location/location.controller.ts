@@ -1,7 +1,7 @@
 import { Controller, Get } from "@nestjs/common"
-import { LocationDetail } from "../../models/dto/LocationDetail"
+import { LocationDetail } from "../../models/dataModels/LocationDetail"
 import { LocationService } from "../../services/location/location.service"
-import { CountryDetail } from "../../models/dto/CountryDetail"
+import { CountryDetail } from "../../models/dataModels/CountryDetail"
 
 @Controller("api/locations")
 export class LocationController {

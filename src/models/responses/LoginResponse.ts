@@ -1,4 +1,4 @@
-import { SocialUser } from "../dto/SocialUser"
+import { SocialUser } from "../dataModels/SocialUser"
 
 export type LoginResponse = {
   user: SocialUser

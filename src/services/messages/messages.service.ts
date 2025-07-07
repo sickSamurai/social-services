@@ -1,16 +1,44 @@
-import { Injectable } from "@nestjs/common"
+import { HttpException, Injectable } from "@nestjs/common"
 import { DataSource } from "typeorm"
-import { Message } from "../../models/dto/Message"
-import { ChatHeader } from "../../models/dto/ChatHeader"
-import { SendMessageToGroupRequest } from "../../models/requests/SendMessageToGroupRequest"
-import { SendMessageToFriendRequest } from "../../models/requests/SendMessageToFriendRequest"
-import { ResponseToFriendMessageRequest } from "../../models/requests/ResponseToFriendMessageRequest"
-import { ResponseToGroupMessageRequest } from "../../models/requests/ResponseToGroupMessageRequest"
+import { Message } from "../../models/dataModels/Message"
+import { ChatHeader } from "../../models/dataModels/ChatHeader"
+import { GroupMessageData } from "../../models/requests/GroupMessageData"
+import { FriendMessageData } from "../../models/requests/FriendMessageData"
+import { FriendResponseData } from "../../models/requests/FriendResponseData"
+import { GroupResponseData } from "../../models/requests/GroupResponseData"
+import { ContentTypes } from "../../models/dataModels/ContentTypes"
+import { EncodedMessage } from "../../models/responses/EncodedMessage"
+import { FileType } from "../../models/dataModels/FileType"
 
 @Injectable()
 export class MessagesService {
   constructor(private dataSource: DataSource) {}
 
+  async getFileType(file?: Express.Multer.File): Promise<string | undefined> {
+    if (!file) return undefined
+    const fileType = file.originalname
+    if (!fileType) return undefined
+    const extension = fileType.split(".").pop()
+    if (!extension) return undefined
+    const sql = "SELECT FILE_TYPE_ID FROM SOCIAL_UD.FILE_TYPE WHERE FILE_TYPE_ID = :fileType"
+    const result = await this.dataSource.query<FileType[]>(sql, [extension.toUpperCase()])
+    if (result.length === 0) throw new HttpException("El tipo de archivo no es soportado por el sistema", 404)
+    return result[0].FILE_TYPE_ID
+  }
+
+  getContentType(fileType?: string): string {
+    if (!fileType) return ContentTypes.TEXT
+    if (fileType === "BPM" || fileType === "GIF") return ContentTypes.IMAGE
+    if (fileType === "MP4" || fileType === "AVI") return ContentTypes.VIDEO
+    return ContentTypes.TEXT
+  }
+
+  /**
+   * Obtiene los encabezados de chat para un usuario específico, incluyendo amistades y grupos.
+   *
+   * @param baseUser El ID del usuario base para el cual se desean obtener los encabezados de chat.
+   * @return Un array de objetos ChatHeader que representan los chats del usuario.
+   */
   async getChatHeaders(baseUser: string): Promise<ChatHeader[]> {
     const sql = `
         SELECT DISTINCT 'FRIENDSHIP'                                                                           AS CHAT_TYPE,
@@ -39,7 +67,14 @@ export class MessagesService {
     return await this.dataSource.query<ChatHeader[]>(sql)
   }
 
-  async getMessagesByFriendID(baseUser: string, friend: string): Promise<Message[]> {
+  /**
+   * Obtiene los mensajes entre dos usuarios específicos, ordenados por fecha de mensaje.
+   *
+   * @param baseUser El ID del usuario base que está solicitando los mensajes.
+   * @param friend El ID del amigo con el que se desean obtener los mensajes.
+   * @return Un array de mensajes que incluyen detalles del remitente y destinatario, así como el contenido del mensaje.
+   */
+  async getMessagesByFriendID(baseUser: string, friend: string): Promise<EncodedMessage[]> {
     const sql = `
         SELECT M.MESSAGE_ID,
                M.MESSAGE_DATE,
@@ -49,6 +84,7 @@ export class MessagesService {
                SU_RECEIVER.USER_NAME || ' ' || SU_RECEIVER.USER_LAST_NAME AS RECEIVER_NAME,
                C.CONTENT_DESCRIPTION                                      AS MESSAGE_CONTENT,
                CT.TYPE_DESCRIPTION                                        AS CONTENT_TYPE_DESCRIPTION,
+               C.CONTENT_IMAGE                                            AS FILE_CONTENT,
                FT.FILE_TYPE_DESCRIPTION                                   AS FILE_TYPE_DESCRIPTION
         FROM SOCIAL_UD.MESSAGE M
                  JOIN SOCIAL_UD.SOCIAL_USER SU_SENDER ON M.SENDER_USER_ID = SU_SENDER.USER_ID
@@ -62,7 +98,9 @@ export class MessagesService {
         ORDER BY M.MESSAGE_DATE DESC
             FETCH FIRST 10 ROWS ONLY
     `
-    return await this.dataSource.query<Message[]>(sql)
+    const messages = await this.dataSource.query<Message[]>(sql)
+
+    return messages.map<EncodedMessage>(message => ({ ...message, FILE_CONTENT: message.FILE_CONTENT ? message.FILE_CONTENT.toString("base64") : undefined }))
   }
 
   /**
@@ -72,7 +110,7 @@ export class MessagesService {
    *
    * @returns Un array de mensajes del grupo, incluyendo detalles del remitente y destinatario.
    */
-  async getMessagesByGroupID(baseUser: string, groupId: number): Promise<Message[]> {
+  async getMessagesByGroupID(baseUser: string, groupId: number): Promise<EncodedMessage[]> {
     const sql = `
         SELECT M.MESSAGE_ID,
                M.MESSAGE_DATE,
@@ -82,6 +120,7 @@ export class MessagesService {
                SU_SENDER.USER_NAME || ' ' || SU_SENDER.USER_LAST_NAME     AS SENDER_NAME,
                C.CONTENT_DESCRIPTION                                      AS MESSAGE_CONTENT,
                CT.TYPE_DESCRIPTION                                        AS CONTENT_TYPE_DESCRIPTION,
+               C.CONTENT_IMAGE                                            AS FILE_CONTENT,
                FT.FILE_TYPE_DESCRIPTION                                   AS FILE_TYPE_DESCRIPTION
         FROM SOCIAL_UD.MESSAGE M
                  JOIN SOCIAL_UD.SOCIAL_USER SU_SENDER ON M.SENDER_USER_ID = SU_SENDER.USER_ID
@@ -94,22 +133,28 @@ export class MessagesService {
         ORDER BY M.MESSAGE_DATE DESC
             FETCH FIRST 10 ROWS ONLY
     `
-    return await this.dataSource.query<Message[]>(sql)
+    const messages = await this.dataSource.query<Message[]>(sql)
+
+    return messages.map<EncodedMessage>(message => ({ ...message, FILE_CONTENT: message.FILE_CONTENT ? message.FILE_CONTENT.toString("base64") : undefined }))
   }
 
   /**
    * Envía un mensaje a un chat privado entre dos usuarios.
    *
    * @param request El objeto que contiene los detalles del mensaje a enviar.
+   * @param file El contenido del archivo adjunto, si existe.
    */
-  async sendMessageToFriend(request: SendMessageToFriendRequest): Promise<void> {
+  async sendMessageToFriend(request: FriendMessageData, file?: Express.Multer.File): Promise<void> {
     const createMessageQuery = `INSERT INTO SOCIAL_UD.MESSAGE (MESSAGE_ID, PARENT_MESSAGE_ID, SENDER_USER_ID, RECEIVER_USER_ID, MESSAGE_DATE)
                                 VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.NEXTVAL, NULL, :senderUserId, :receiverUserId, SYSDATE)`
     const createMessageQueryParams = [request.senderUserId, request.receiverUserId]
     await this.dataSource.query(createMessageQuery, createMessageQueryParams)
-    const contentQuery = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_IMAGE, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, FILE_TYPE)
-                          VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, EMPTY_BLOB(), :messageContent, :contentTypeId, :fileType)`
-    const contentQueryParams = [request.messageContent, request.contentTypeId, request.fileType]
+    const contentQuery = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, CONTENT_IMAGE, FILE_TYPE)
+                          VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, :messageContent, :contentTypeId, :fileContent, :fileTypeId)`
+    const fileContent = file?.buffer
+    const fileType = await this.getFileType(file)
+    const contentType = this.getContentType(fileType)
+    const contentQueryParams = [request.messageContent, contentType, fileContent, fileType]
     await this.dataSource.query(contentQuery, contentQueryParams)
   }
 
@@ -117,8 +162,9 @@ export class MessagesService {
    * Envía un mensaje a un grupo, lo que implica enviarlo a cada uno de los miembros del grupo, en calidad de destinatarios del mensaje.
    *
    * @param request El objeto DTO que contiene los detalles del mensaje a enviar.
+   * @param file El contenido del archivo adjunto, si existe.
    */
-  async sendMessageToGroup(request: SendMessageToGroupRequest): Promise<void> {
+  async sendMessageToGroup(request: GroupMessageData, file?: Express.Multer.File): Promise<void> {
     const groupMembersSql = "SELECT USER_ID FROM SOCIAL_UD.GROUP_MEMBERSHIP WHERE GROUP_ID = :groupId AND USER_ID != :senderUserId"
     const groupMembers = await this.dataSource.query<{ USER_ID: string }[]>(groupMembersSql, [request.groupId, request.senderUserId])
     for (const member of groupMembers) {
@@ -126,25 +172,43 @@ export class MessagesService {
                    VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.NEXTVAL, NULL, :groupId, :senderUserId, :receiverUserId, SYSDATE)`
       const params = [request.groupId, request.senderUserId, member.USER_ID]
       await this.dataSource.query(sql, params)
-      const contentSql = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_IMAGE, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, FILE_TYPE)
-                          VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, EMPTY_BLOB(), :messageContent, :contentTypeId, :fileTypeId)`
-      const contentParams = [request.messageContent, request.contentTypeId, request.fileTypeId]
+      const contentSql = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, CONTENT_IMAGE, FILE_TYPE)
+                          VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, :messageContent, :contentTypeId, :fileContent, :fileTypeId)`
+      const fileContent = file?.buffer
+      const fileType = await this.getFileType(file)
+      const contentType = this.getContentType(fileType)
+      const contentParams = [request.messageContent, contentType, fileContent, fileType]
       await this.dataSource.query(contentSql, contentParams)
     }
   }
 
-  async responseToFriendMessage(request: ResponseToFriendMessageRequest): Promise<void> {
+  /**
+   * Envía una respuesta a un mensaje de un amigo, creando un nuevo mensaje que referencia el mensaje original.
+   *
+   * @param request El objeto DTO que contiene los detalles de la respuesta al mensaje de un amigo.
+   * @param file El contenido del archivo adjunto, si existe.
+   */
+  async responseToFriendMessage(request: FriendResponseData, file?: Express.Multer.File): Promise<void> {
     const createMessageQuery = `INSERT INTO SOCIAL_UD.MESSAGE (MESSAGE_ID, PARENT_MESSAGE_ID, SENDER_USER_ID, RECEIVER_USER_ID, MESSAGE_DATE)
                                 VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.NEXTVAL, :parentMessageId, :senderUserId, :receiverUserId, SYSDATE)`
     const createMessageQueryParams = [request.parentMessageId, request.senderUserId, request.receiverUserId]
     await this.dataSource.query(createMessageQuery, createMessageQueryParams)
-    const contentQuery = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_IMAGE, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, FILE_TYPE)
-                          VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, EMPTY_BLOB(), :messageContent, :contentTypeId, :fileType)`
-    const contentQueryParams = [request.messageContent, request.contentTypeId, request.fileType]
+    const contentQuery = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, CONTENT_IMAGE, FILE_TYPE)
+                          VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, :messageContent, :contentTypeId, :fileContent, :fileType)`
+    const fileContent = file?.buffer
+    const fileType = await this.getFileType(file)
+    const contentType = this.getContentType(fileType)
+    const contentQueryParams = [request.messageContent, contentType, fileContent, fileType]
     await this.dataSource.query(contentQuery, contentQueryParams)
   }
 
-  async responseToGroupMessage(request: ResponseToGroupMessageRequest): Promise<void> {
+  /**
+   * Envía una respuesta a un mensaje de grupo, creando un nuevo mensaje que referencia el mensaje original y enviándolo a todos los miembros del grupo.
+   *
+   * @param request El objeto DTO que contiene los detalles de la respuesta al mensaje de grupo.
+   * @param file El contenido del archivo adjunto, si existe.
+   */
+  async responseToGroupMessage(request: GroupResponseData, file?: Express.Multer.File): Promise<void> {
     const groupMembersSql = "SELECT USER_ID FROM SOCIAL_UD.GROUP_MEMBERSHIP WHERE GROUP_ID = :groupId AND USER_ID != :senderUserId"
     const groupMembers = await this.dataSource.query<{ USER_ID: string }[]>(groupMembersSql, [request.groupId, request.senderUserId])
     for (const member of groupMembers) {
@@ -152,9 +216,12 @@ export class MessagesService {
                    VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.NEXTVAL, :parentMessageId, :groupId, :senderUserId, :receiverUserId, SYSDATE)`
       const params = [request.parentMessageId, request.groupId, request.senderUserId, member.USER_ID]
       await this.dataSource.query(sql, params)
-      const contentSql = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_IMAGE, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, FILE_TYPE)
-                          VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, EMPTY_BLOB(), :messageContent, :contentTypeId, :fileType)`
-      const contentParams = [request.messageContent, request.contentTypeId, request.fileType]
+      const contentSql = `INSERT INTO SOCIAL_UD.CONTENT (MESSAGE_ID, CONTENT_ID, CONTENT_DESCRIPTION, CONTENT_TYPE_ID, CONTENT_IMAGE, FILE_TYPE)
+                          VALUES (SOCIAL_UD.MESSAGE_ID_SEQ.CURRVAL, 1, :messageContent, :contentTypeId, :fileContent, :fileType)`
+      const fileContent = file?.buffer
+      const fileType = await this.getFileType(file)
+      const contentType = this.getContentType(fileType)
+      const contentParams = [request.messageContent, contentType, fileContent, fileType]
       await this.dataSource.query(contentSql, contentParams)
     }
   }

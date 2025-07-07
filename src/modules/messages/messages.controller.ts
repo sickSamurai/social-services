@@ -1,11 +1,12 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common"
+import { Body, Controller, Get, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common"
 import { MessagesService } from "../../services/messages/messages.service"
-import { ChatHeader } from "../../models/dto/ChatHeader"
-import { Message } from "../../models/dto/Message"
-import { SendMessageToFriendRequest } from "../../models/requests/SendMessageToFriendRequest"
-import { SendMessageToGroupRequest } from "../../models/requests/SendMessageToGroupRequest"
-import { ResponseToGroupMessageRequest } from "../../models/requests/ResponseToGroupMessageRequest"
-import { ResponseToFriendMessageRequest } from "../../models/requests/ResponseToFriendMessageRequest"
+import { ChatHeader } from "../../models/dataModels/ChatHeader"
+import { FriendMessageData } from "../../models/requests/FriendMessageData"
+import { GroupMessageData } from "../../models/requests/GroupMessageData"
+import { GroupResponseData } from "../../models/requests/GroupResponseData"
+import { FriendResponseData } from "../../models/requests/FriendResponseData"
+import { FileInterceptor } from "@nestjs/platform-express"
+import { EncodedMessage } from "../../models/responses/EncodedMessage"
 
 @Controller("api/messages")
 export class MessagesController {
@@ -17,32 +18,36 @@ export class MessagesController {
   }
 
   @Get("friends")
-  async getMessagesByFriend(@Query("baseUser") baseUser: string, @Query("friend") friend: string): Promise<Message[]> {
+  async getMessagesByFriend(@Query("baseUser") baseUser: string, @Query("friend") friend: string): Promise<EncodedMessage[]> {
     return await this.messagesService.getMessagesByFriendID(baseUser, friend)
   }
 
   @Get("groups")
-  async getMessagesByGroup(@Query("baseUser") baseUser: string, @Query("groupId") groupId: number): Promise<Message[]> {
+  async getMessagesByGroup(@Query("baseUser") baseUser: string, @Query("groupId") groupId: number): Promise<EncodedMessage[]> {
     return await this.messagesService.getMessagesByGroupID(baseUser, groupId)
   }
 
   @Post("friends")
-  async sendMessageToFriend(@Body() request: SendMessageToFriendRequest): Promise<void> {
-    await this.messagesService.sendMessageToFriend(request)
+  @UseInterceptors(FileInterceptor("file"))
+  async sendMessageToFriend(@Body() request: FriendMessageData, @UploadedFile("file") file?: Express.Multer.File): Promise<void> {
+    await this.messagesService.sendMessageToFriend(request, file)
   }
 
   @Post("responses/friends")
-  async responseToFriendMessage(@Body() request: ResponseToFriendMessageRequest): Promise<void> {
-    await this.messagesService.responseToFriendMessage(request)
+  @UseInterceptors(FileInterceptor("file"))
+  async responseToFriendMessage(@Body() request: FriendResponseData, @UploadedFile("file") fileContent: Express.Multer.File): Promise<void> {
+    await this.messagesService.responseToFriendMessage(request, fileContent)
   }
 
   @Post("groups")
-  async sendMessageToGroup(@Body() request: SendMessageToGroupRequest): Promise<void> {
-    await this.messagesService.sendMessageToGroup(request)
+  @UseInterceptors(FileInterceptor("file"))
+  async sendMessageToGroup(@Body() request: GroupMessageData, @UploadedFile("file") fileContent: Express.Multer.File): Promise<void> {
+    await this.messagesService.sendMessageToGroup(request, fileContent)
   }
 
   @Post("responses/groups")
-  async responseToGroupMessage(@Body() request: ResponseToGroupMessageRequest): Promise<void> {
-    await this.messagesService.responseToGroupMessage(request)
+  @UseInterceptors(FileInterceptor("file"))
+  async responseToGroupMessage(@Body() request: GroupResponseData, @UploadedFile("file") fileContent: Express.Multer.File): Promise<void> {
+    await this.messagesService.responseToGroupMessage(request, fileContent)
   }
 }

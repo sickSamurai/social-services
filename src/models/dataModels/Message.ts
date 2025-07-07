@@ -7,5 +7,6 @@ export type Message = {
   RECEIVER_NAME: string;
   MESSAGE_CONTENT: string;
   CONTENT_TYPE_DESCRIPTION: string;
+  FILE_CONTENT?: Buffer
   FILE_TYPE_DESCRIPTION: string | undefined;
 }
